@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">SE7EN Barbershop</string>
+    <string name="title_activity_main">SE7EN Barbershop</string>
+    <string name="package_name">com.se7en.barbershop</string>
+    <string name="custom_url_scheme">com.se7en.barbershop</string>
+</resources>
