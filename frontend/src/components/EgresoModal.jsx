@@ -106,7 +106,7 @@ export default function EgresoModal({ onClose, onSaved }) {
       }
     >
       {!isOnline && (
-        <div style={{ background: "#422006", border: "1px solid #92400e", borderRadius: "6px", padding: "8px 12px", marginBottom: "12px", fontSize: "11px", color: "#fde68a" }}>
+        <div style={{ background: "#422006", border: "1px solid #92400e", borderRadius: "6px", padding: "8px 12px", marginBottom: "12px", fontSize: "16px", color: "#fde68a" }}>
           ⚡ Sin conexión — el egreso se guardará localmente y se sincronizará después
         </div>
       )}
@@ -116,7 +116,7 @@ export default function EgresoModal({ onClose, onSaved }) {
           <option value="">— Seleccionar —</option>
           {CONCEPTOS.map((c) => <option key={c} value={c}>{c}</option>)}
         </select>
-        {errors.concepto && <span style={{ color: "var(--red)", fontSize: "11px" }}>{errors.concepto}</span>}
+        {errors.concepto && <span style={{ color: "var(--red)", fontSize: "16px" }}>{errors.concepto}</span>}
       </FormField>
 
       <FormField label="¿Salió de caja?">
@@ -128,7 +128,7 @@ export default function EgresoModal({ onClose, onSaved }) {
 
       <FormField label="Monto (S/)">
         <input type="number" min="0" step="0.5" placeholder="0.00" value={form.monto} onChange={(e) => set("monto", e.target.value)} />
-        {errors.monto && <span style={{ color: "var(--red)", fontSize: "11px" }}>{errors.monto}</span>}
+        {errors.monto && <span style={{ color: "var(--red)", fontSize: "16px" }}>{errors.monto}</span>}
       </FormField>
 
       <FormField label="Asignado a *">
@@ -139,7 +139,7 @@ export default function EgresoModal({ onClose, onSaved }) {
             return <option key={u.id} value={u.id}>{u.nombre_corto} ({roles})</option>;
           })}
         </select>
-        {errors.asignado_a && <span style={{ color: "var(--red)", fontSize: "11px" }}>{errors.asignado_a}</span>}
+        {errors.asignado_a && <span style={{ color: "var(--red)", fontSize: "16px" }}>{errors.asignado_a}</span>}
       </FormField>
 
       <FormField label="Notas (opcional)">
@@ -147,7 +147,7 @@ export default function EgresoModal({ onClose, onSaved }) {
           onChange={(e) => set("notas", e.target.value)} style={{ resize: "vertical" }} />
       </FormField>
 
-      <div style={{ fontSize: "11px", color: "var(--color-text-muted)" }}>
+      <div style={{ fontSize: "16px", color: "var(--color-text-muted)" }}>
         Fecha: {new Date().toLocaleDateString("es-PE")} (automática)
       </div>
     </Modal>

@@ -1,5 +1,8 @@
 import { createContext, useContext, useReducer, useCallback } from "react";
 
+// Panel web solo del admin (VITE_APP_MODE=admin): no existen las pantallas del barbero
+export const ADMIN_ONLY = import.meta.env.VITE_APP_MODE === "admin";
+
 const initialState = {
   // Navegación
   screen: "landing", // landing | barberSelect | barberHome | registro | adminLogin | admin
@@ -18,7 +21,10 @@ const initialState = {
 function reducer(state, action) {
   switch (action.type) {
     // ── Navegación ──
-    case "GO": return { ...state, screen: action.screen };
+    case "GO":
+      if (ADMIN_ONLY && !["admin", "adminLogin"].includes(action.screen))
+        return { ...state, screen: state.isAdmin ? "admin" : "adminLogin" };
+      return { ...state, screen: action.screen };
 
     // ── Barbero ──
     case "SET_BARBERO":
@@ -40,7 +46,7 @@ function reducer(state, action) {
     case "LOGOUT_ADMIN":
       sessionStorage.removeItem("se7en_token");
       sessionStorage.removeItem("se7en_user");
-      return { ...state, isAdmin: false, adminToken: null, adminUser: null, screen: "landing" };
+      return { ...state, isAdmin: false, adminToken: null, adminUser: null, screen: ADMIN_ONLY ? "adminLogin" : "landing" };
 
     // ── Online ──
     case "SET_ONLINE": return { ...state, online: action.online };
@@ -65,7 +71,7 @@ export function StoreProvider({ children }) {
     isAdmin: !!initialState.adminToken,
     screen: initialState.adminToken
       ? "admin"
-      : "landing",
+      : (ADMIN_ONLY ? "adminLogin" : "landing"),
   });
 
   return (

@@ -2,11 +2,15 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
 
-export default defineConfig({
+// mode "admin" (npm run build:admin) → panel web solo del admin, sin PWA ni service worker
+export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
     VitePWA({
+      disable: mode === "admin",
       registerType: "autoUpdate",
+      // El registro se hace a mano en main.jsx (solo en la web, nunca dentro del APK)
+      injectRegister: false,
       // generateSW: Workbox genera el SW automáticamente — no requiere sw.js manual
       strategies: "generateSW",
       manifest: {
@@ -67,6 +71,7 @@ export default defineConfig({
   },
 
   build: {
+    outDir: mode === "admin" ? "dist-admin" : "dist",
     sourcemap: false,
     rollupOptions: {
       output: {
@@ -78,4 +83,4 @@ export default defineConfig({
       },
     },
   },
-});
+}));

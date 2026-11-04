@@ -357,3 +357,111 @@ input::placeholder { color: var(--gray); }
 /* ── App layout ──────────────────────────────────────────────────────────────── */
 .app-main { min-height: calc(100vh - 0px); }
 .page { max-width: 1200px; margin: 0 auto; padding: 20px 16px; }
+
+/* ── Registro de servicios/ventas (responsive) ───────────────────────────────── */
+.registro-layout {
+  min-height: 100vh;
+  background: var(--dark);
+  display: grid;
+  /* minmax(0, …) evita que el contenido ancho desborde y solape la otra columna */
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr);
+}
+.registro-left {
+  min-width: 0;
+  padding: 18px;
+  border-right: 1px solid var(--dark3);
+  overflow-y: auto;
+}
+.registro-right {
+  min-width: 0;
+  padding: 4px 18px 18px 18px;
+  display: flex;
+  flex-direction: column;
+}
+.registro-items { flex: 1; overflow-y: auto; }
+
+/* Celular vertical (portrait): una sola columna (opciones arriba, detalle abajo)
+   y barra de TOTAL + Registrar fija al fondo de la pantalla */
+@media (max-width: 767px) and (orientation: portrait) {
+  .registro-layout {
+    grid-template-columns: minmax(0, 1fr);
+    padding-bottom: calc(200px + env(safe-area-inset-bottom, 0px));
+  }
+  .registro-left {
+    padding: 14px;
+    border-right: none;
+    border-bottom: 1px solid var(--dark3);
+    overflow-y: visible;
+  }
+  .registro-right { padding: 12px 14px 0; }
+  .registro-items { overflow-y: visible; }
+  .registro-actions {
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    z-index: 50;
+    background: var(--dark);
+    padding: 0 14px calc(10px + env(safe-area-inset-bottom, 0px));
+    box-shadow: 0 -6px 16px rgba(0, 0, 0, .45);
+  }
+  .registro-actions button { padding: 13px 12px; white-space: nowrap; min-width: 0; }
+  /* Los avisos (toasts) suben para no tapar la barra de Registrar */
+  body:has(.registro-actions) .toast-container {
+    left: 14px; right: 14px;
+    bottom: calc(200px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+/* Celular horizontal (landscape): dos columnas como en tablet.
+   Izquierda = opciones, derecha = lo que se va a cobrar + TOTAL + Registrar.
+   Cada columna hace scroll por separado para que el total siempre se vea. */
+@media (orientation: landscape) and (max-height: 600px) {
+  .registro-layout {
+    height: 100vh;
+    height: 100dvh;
+    min-height: 0;
+    overflow: hidden;
+    padding-left: env(safe-area-inset-left, 0px);
+    padding-right: env(safe-area-inset-right, 0px);
+  }
+  .registro-left {
+    padding: 10px 12px calc(10px + env(safe-area-inset-bottom, 0px));
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .registro-right {
+    padding: 6px 12px calc(8px + env(safe-area-inset-bottom, 0px));
+    min-height: 0;
+    overflow: hidden;
+  }
+  .registro-items { min-height: 0; overflow-y: auto; }
+  .registro-actions { flex-shrink: 0; }
+  .registro-actions button { padding-top: 8px; padding-bottom: 8px; white-space: nowrap; }
+}
+
+/* ── Tabla de ventas del día (Home barbero), +5 px ──────────────────────────── */
+.pivot-table-xl    { font-size: 17px; }
+.pivot-table-xl th { font-size: 14px; }
+.pivot-table-xl td { white-space: nowrap; }
+.pivot-table-xl .tag-s, .pivot-table-xl .tag-p, .pivot-table-xl .tag-tip { font-size: 15px; }
+
+/* ── Sección barbero (selección, home, registro y sus ventanas): +5 px ────── */
+.seccion-barbero .btn-primary   { font-size: 18px; }
+.seccion-barbero .btn-secondary,
+.seccion-barbero .btn-ghost,
+.seccion-barbero .btn-danger    { font-size: 19px; }
+.seccion-barbero input,
+.seccion-barbero select,
+.seccion-barbero textarea       { font-size: 18px; }
+.seccion-barbero .tag-s,
+.seccion-barbero .tag-p,
+.seccion-barbero .tag-tip,
+.seccion-barbero .tag-egr       { font-size: 15px; }
+.seccion-barbero .modal-title   { font-size: 21px; }
+.seccion-barbero .form-label    { font-size: 17px; }
+.seccion-barbero .kpi-label     { font-size: 16px; }
+.seccion-barbero .kpi-value     { font-size: 29px; }
+.seccion-barbero .kpi-grid      { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+.seccion-barbero .toast         { font-size: 18px; }
+.seccion-barbero .topbar-offline,
+.seccion-barbero .topbar-syncing { font-size: 17px; }
+.seccion-barbero .inactivity-banner { font-size: 17px; }

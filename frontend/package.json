@@ -7,6 +7,9 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
+    "dev:admin": "vite --mode admin",
+    "build:admin": "vite build --mode admin",
+    "start:admin": "serve -s dist-admin -l 3000",
     "lint": "eslint src --ext .js,.jsx",
     "test": "node ./node_modules/vitest/vitest.mjs run",
     "test:watch": "node ./node_modules/vitest/vitest.mjs",
@@ -24,6 +27,7 @@
     "idb": "^8.0.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "serve": "^14.2.4",
     "uuid": "^10.0.0"
   },
   "devDependencies": {
@@ -38,5 +42,8 @@
     "vite-plugin-pwa": "^0.20.0",
     "vitest": "^4.1.8",
     "workbox-build": "^7.1.1"
+  },
+  "engines": {
+    "node": ">=22"
   }
 }

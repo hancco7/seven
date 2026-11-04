@@ -1,4 +1,4 @@
-import { StoreProvider, useStore } from "./store/useStore";
+import { StoreProvider, useStore, ADMIN_ONLY } from "./store/useStore";
 import Toast from "./components/Toast";
 import Topbar from "./components/Topbar";
 import OfflineStatusBar from "./components/OfflineStatusBar";
@@ -15,8 +15,20 @@ function Router() {
 
   if (screen === "admin") return <Admin />;
 
+  // Panel web solo del admin: únicamente la pantalla de login
+  if (ADMIN_ONLY) {
+    return (
+      <>
+        <main className="app-main"><AdminLogin /></main>
+        <Toast />
+      </>
+    );
+  }
+
+  const esBarbero = ["barberSelect", "barberHome", "registro"].includes(screen);
+
   return (
-    <>
+    <div className={esBarbero ? "seccion-barbero" : undefined}>
       <OfflineStatusBar />
       <Topbar />
       <main className="app-main">
@@ -27,7 +39,7 @@ function Router() {
         {screen === "adminLogin"   && <AdminLogin />}
       </main>
       <Toast />
-    </>
+    </div>
   );
 }
 

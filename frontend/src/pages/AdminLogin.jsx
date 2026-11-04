@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { api } from "../utils/api";
-import { useStore, useToast } from "../store/useStore";
+import { useStore, useToast, ADMIN_ONLY } from "../store/useStore";
 
 export default function AdminLogin() {
   const { dispatch } = useStore();
@@ -95,12 +95,12 @@ export default function AdminLogin() {
           Sesión válida por 8 horas · Protegido con JWT + bcrypt
         </p>
 
-        <button
+        {!ADMIN_ONLY && <button
           onClick={() => dispatch({ type: "GO", screen: "landing" })}
           style={{ display:"block", margin:"12px auto 0", background:"none", border:"none", color:"var(--gray)", fontSize:"11px", cursor:"pointer" }}
         >
           ← Volver al inicio
-        </button>
+        </button>}
       </div>
     </div>
   );

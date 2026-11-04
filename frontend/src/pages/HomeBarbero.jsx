@@ -58,7 +58,7 @@ export default function HomeBarbero() {
 
   const thStyle = {
     padding: "7px 10px", background: "var(--dark)", color: "var(--gray)",
-    fontSize: "10px", textTransform: "uppercase", letterSpacing: "1px",
+    fontSize: "15px", textTransform: "uppercase", letterSpacing: "1px",
     textAlign: "left", whiteSpace: "nowrap",
   };
 
@@ -80,14 +80,14 @@ export default function HomeBarbero() {
             background: "var(--orange)", color: "#fff", borderRadius: "var(--radius-full)",
             padding: "5px 14px 5px 8px", marginBottom: "6px",
           }}>
-            <div style={{ width:"28px", height:"28px", borderRadius:"50%", background:"rgba(255,255,255,.2)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:"11px", fontWeight:700 }}>
+            <div style={{ width:"36px", height:"36px", borderRadius:"50%", background:"rgba(255,255,255,.2)", display:"flex", alignItems:"center", justifyContent:"center", fontSize: "16px", fontWeight:700 }}>
               {barberoActual?.nombre_corto?.[0]}
             </div>
-            <span style={{ fontSize:"13px", fontWeight:700, letterSpacing:"1px" }}>
+            <span style={{ fontSize: "18px", fontWeight:700, letterSpacing:"1px" }}>
               {barberoActual?.nombre_corto}
             </span>
           </div>
-          <div style={{ fontFamily:"var(--font-mono)", fontSize:"11px", color:"var(--gray)" }}>
+          <div style={{ fontFamily:"var(--font-mono)", fontSize: "16px", color:"var(--gray)" }}>
             {fechaStr} · {horaStr}
           </div>
         </div>
@@ -115,13 +115,13 @@ export default function HomeBarbero() {
             <div className="kpi-label">Total Ventas</div>
             <div className="kpi-value">{fmt(totalVentas)}</div>
             <div style={{ marginTop:"6px", paddingTop:"6px", borderTop:"1px solid var(--dark3)", display:"flex", flexDirection:"column", gap:"2px" }}>
-              <div style={{ display:"flex", justifyContent:"space-between", fontSize:"10px" }}>
+              <div style={{ display:"flex", justifyContent:"space-between", flexWrap:"wrap", columnGap:"8px", fontSize: "15px" }}>
                 <span style={{ color:"var(--gray)" }}>✂ Servicios</span>
-                <span style={{ color:"var(--color-yape)", fontFamily:"var(--font-mono)", fontWeight:600 }}>{fmt(ventasServicios)}</span>
+                <span style={{ color:"var(--color-yape)", fontFamily:"var(--font-mono)", fontWeight:600, whiteSpace:"nowrap", marginLeft:"auto" }}>{fmt(ventasServicios)}</span>
               </div>
-              <div style={{ display:"flex", justifyContent:"space-between", fontSize:"10px" }}>
+              <div style={{ display:"flex", justifyContent:"space-between", flexWrap:"wrap", columnGap:"8px", fontSize: "15px" }}>
                 <span style={{ color:"var(--gray)" }}>🧴 Productos</span>
-                <span style={{ color:"var(--blue)", fontFamily:"var(--font-mono)", fontWeight:600 }}>{fmt(ventasProductos)}</span>
+                <span style={{ color:"var(--blue)", fontFamily:"var(--font-mono)", fontWeight:600, whiteSpace:"nowrap", marginLeft:"auto" }}>{fmt(ventasProductos)}</span>
               </div>
             </div>
           </div>
@@ -142,16 +142,16 @@ export default function HomeBarbero() {
 
       {/* Tabla pivot de ventas */}
       <div className="card" style={{ marginBottom: "12px" }}>
-        <h3 style={{ fontSize:"11px", textTransform:"uppercase", letterSpacing:"2px", color:"var(--orange)", marginBottom:"12px" }}>
+        <h3 style={{ fontSize: "16px", textTransform:"uppercase", letterSpacing:"2px", color:"var(--orange)", marginBottom:"12px" }}>
           Ventas del día
         </h3>
         {loading ? (
           <p style={{ color:"var(--gray)", textAlign:"center", padding:"20px" }}>Cargando…</p>
         ) : ventas.length === 0 ? (
-          <p style={{ color:"var(--gray)", textAlign:"center", padding:"20px", fontSize:"12px" }}>Sin ventas registradas hoy</p>
+          <p style={{ color:"var(--gray)", textAlign:"center", padding:"20px", fontSize: "17px" }}>Sin ventas registradas hoy</p>
         ) : (
           <div className="scroll-x">
-            <table className="pivot-table">
+            <table className="pivot-table pivot-table-xl">
               <thead>
                 <tr>
                   <th>Registro</th>
@@ -170,8 +170,8 @@ export default function HomeBarbero() {
                   return items.map((item, idx) => (
                     <tr key={`${v.id}-${idx}`}>
                       {idx === 0 && (
-                        <td rowSpan={items.length} style={{ fontSize:"10px", color:"var(--gray)", fontFamily:"var(--font-mono)" }}>
-                          {v.hora?.slice(0,5)}{v.es_manual && <span style={{ color:"var(--orange)", fontSize:"9px", marginLeft:"4px" }}>MANUAL</span>}
+                        <td rowSpan={items.length} style={{ fontSize: "15px", color:"var(--gray)", fontFamily:"var(--font-mono)" }}>
+                          {v.hora?.slice(0,5)}{v.es_manual && <span style={{ color:"var(--orange)", fontSize: "14px", marginLeft:"4px" }}>MANUAL</span>}
                         </td>
                       )}
                       <td style={{ color:"var(--color-text)" }}>{item.nombre}</td>
@@ -208,16 +208,16 @@ export default function HomeBarbero() {
 
       {/* Tabla de egresos del día */}
       <div className="card" style={{ marginBottom: "12px" }}>
-        <h3 style={{ fontSize:"11px", textTransform:"uppercase", letterSpacing:"2px", color:"var(--red)", marginBottom:"12px" }}>
+        <h3 style={{ fontSize: "16px", textTransform:"uppercase", letterSpacing:"2px", color:"var(--red)", marginBottom:"12px" }}>
           Egresos del día {egresos.length > 0 && <span style={{ color:"var(--gray)", fontWeight:400 }}>({egresos.length})</span>}
         </h3>
         {loading ? (
           <p style={{ color:"var(--gray)", textAlign:"center", padding:"12px" }}>Cargando…</p>
         ) : egresos.length === 0 ? (
-          <p style={{ color:"var(--gray)", textAlign:"center", padding:"12px", fontSize:"12px" }}>Sin egresos registrados hoy</p>
+          <p style={{ color:"var(--gray)", textAlign:"center", padding:"12px", fontSize: "17px" }}>Sin egresos registrados hoy</p>
         ) : (
           <div className="scroll-x">
-            <table style={{ width:"100%", borderCollapse:"collapse", fontSize:"12px" }}>
+            <table style={{ width:"100%", borderCollapse:"collapse", fontSize: "17px" }}>
               <thead>
                 <tr>
                   {["Hora","Concepto","Asignado a","Notas","Monto"].map(h => (
@@ -230,12 +230,12 @@ export default function HomeBarbero() {
               <tbody>
                 {egresos.map((e) => (
                   <tr key={e.id} style={{ borderBottom:"0.5px solid var(--color-border)" }}>
-                    <td style={{ padding:"7px 10px", fontFamily:"var(--font-mono)", fontSize:"10px", color:"var(--gray)", whiteSpace:"nowrap" }}>
+                    <td style={{ padding:"7px 10px", fontFamily:"var(--font-mono)", fontSize: "15px", color:"var(--gray)", whiteSpace:"nowrap" }}>
                       {e.hora?.slice(0,5)}
                     </td>
                     <td style={{ padding:"7px 10px", fontWeight:600 }}>{e.concepto}</td>
-                    <td style={{ padding:"7px 10px", color:"var(--gray)", fontSize:"11px" }}>{e.asignado_nombre || "—"}</td>
-                    <td style={{ padding:"7px 10px", color:"var(--gray)", fontSize:"11px" }}>{e.notas || "—"}</td>
+                    <td style={{ padding:"7px 10px", color:"var(--gray)", fontSize: "16px" }}>{e.asignado_nombre || "—"}</td>
+                    <td style={{ padding:"7px 10px", color:"var(--gray)", fontSize: "16px" }}>{e.notas || "—"}</td>
                     <td style={{ padding:"7px 10px", color:"var(--red)", fontFamily:"var(--font-mono)", fontWeight:600 }}>
                       {fmt(e.monto)}
                     </td>
@@ -249,7 +249,7 @@ export default function HomeBarbero() {
                 ))}
                 {/* Total */}
                 <tr style={{ borderTop:"1.5px solid var(--red)" }}>
-                  <td colSpan={4} style={{ padding:"7px 10px", fontFamily:"var(--font-display)", letterSpacing:"1px", fontSize:"11px" }}>
+                  <td colSpan={4} style={{ padding:"7px 10px", fontFamily:"var(--font-display)", letterSpacing:"1px", fontSize: "16px" }}>
                     TOTAL EGRESOS DÍA
                   </td>
                   <td style={{ padding:"7px 10px", color:"var(--red)", fontFamily:"var(--font-mono)", fontWeight:700 }}>
@@ -269,7 +269,7 @@ export default function HomeBarbero() {
       </div>
 
       {/* Leyenda */}
-      <div style={{ display:"flex", gap:"16px", fontSize:"10px", color:"var(--gray)", flexWrap:"wrap" }}>
+      <div style={{ display:"flex", gap:"16px", fontSize: "15px", color:"var(--gray)", flexWrap:"wrap" }}>
         {[["Efectivo","var(--color-efectivo)"],["Tarjeta","var(--color-tarjeta)"],["Yape","var(--color-yape)"],["Plin","var(--color-plin)"]].map(([l,c]) => (
           <span key={l} style={{ display:"flex", alignItems:"center", gap:"4px" }}>
             <span style={{ width:"8px", height:"8px", borderRadius:"50%", background:c, display:"inline-block" }}></span>

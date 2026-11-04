@@ -2,6 +2,9 @@ import { useState, useEffect } from "react";
 import Modal, { FormField } from "./Modal";
 import { api } from "../utils/api";
 
+// Montos sin decimales (15 → "S/ 15"); solo muestra decimales si el precio realmente los tiene
+const fmtSol = (n) => "S/ " + Number(n || 0).toLocaleString("es-PE", { maximumFractionDigits: 2 });
+
 // ── OtrosSvcModal ─────────────────────────────────────────────────────────────
 export function OtrosSvcModal({ onClose, onAgregar }) {
   const [categorias, setCategorias] = useState({});
@@ -55,13 +58,13 @@ export function OtrosSvcModal({ onClose, onAgregar }) {
         <div className="filter-chain" style={{
           display:"flex", alignItems:"center", gap:"6px",
           background:"var(--orange-dim)", border:"1px solid var(--orange-border)",
-          borderRadius:"6px", padding:"6px 12px", marginBottom:"12px", fontSize:"11px",
+          borderRadius:"6px", padding:"6px 12px", marginBottom:"12px", fontSize: "16px",
           color:"var(--color-text-muted)"
         }}>
           <span style={{ color:"var(--orange)", fontWeight:600 }}>Categoría</span>
           <span>→</span>
-          <span style={{ background:"var(--orange)", color:"#fff", padding:"2px 8px", borderRadius:"4px", fontSize:"10px", fontWeight:600 }}>{cat}</span>
-          {sub && <><span>→</span><span style={{ background:"var(--orange)", color:"#fff", padding:"2px 8px", borderRadius:"4px", fontSize:"10px", fontWeight:600 }}>{sub}</span></>}
+          <span style={{ background:"var(--orange)", color:"#fff", padding:"2px 8px", borderRadius:"4px", fontSize: "15px", fontWeight:600 }}>{cat}</span>
+          {sub && <><span>→</span><span style={{ background:"var(--orange)", color:"#fff", padding:"2px 8px", borderRadius:"4px", fontSize: "15px", fontWeight:600 }}>{sub}</span></>}
         </div>
       )}
 
@@ -81,13 +84,13 @@ export function OtrosSvcModal({ onClose, onAgregar }) {
 
       <div style={{ maxHeight:"280px", overflowY:"auto" }}>
         {resultados.length > 0 && (
-          <table style={{ width:"100%", borderCollapse:"collapse", fontSize:"12px" }}>
+          <table style={{ width:"100%", borderCollapse:"collapse", fontSize: "17px" }}>
             <thead>
               <tr style={{ background:"var(--dark)" }}>
-                <th style={{ padding:"6px 10px", textAlign:"left", color:"var(--gray)", fontSize:"10px", textTransform:"uppercase" }}>Categoría</th>
-                <th style={{ padding:"6px 10px", textAlign:"left", color:"var(--gray)", fontSize:"10px", textTransform:"uppercase" }}>Subcategoría</th>
-                <th style={{ padding:"6px 10px", textAlign:"left", color:"var(--gray)", fontSize:"10px", textTransform:"uppercase" }}>Servicio</th>
-                <th style={{ padding:"6px 10px", textAlign:"right", color:"var(--gray)", fontSize:"10px", textTransform:"uppercase" }}>Precio</th>
+                <th style={{ padding:"6px 10px", textAlign:"left", color:"var(--gray)", fontSize: "15px", textTransform:"uppercase" }}>Categoría</th>
+                <th style={{ padding:"6px 10px", textAlign:"left", color:"var(--gray)", fontSize: "15px", textTransform:"uppercase" }}>Subcategoría</th>
+                <th style={{ padding:"6px 10px", textAlign:"left", color:"var(--gray)", fontSize: "15px", textTransform:"uppercase" }}>Servicio</th>
+                <th style={{ padding:"6px 10px", textAlign:"right", color:"var(--gray)", fontSize: "15px", textTransform:"uppercase" }}>Precio</th>
               </tr>
             </thead>
             <tbody>
@@ -104,14 +107,14 @@ export function OtrosSvcModal({ onClose, onAgregar }) {
                   <td style={{ padding:"7px 10px", color:"var(--color-text-dim)" }}>{s.categoria}</td>
                   <td style={{ padding:"7px 10px", color:"var(--color-text-dim)" }}>{s.subcategoria}</td>
                   <td style={{ padding:"7px 10px", color:"var(--color-text)" }}>{s.nombre}</td>
-                  <td style={{ padding:"7px 10px", color:"var(--orange)", fontWeight:600, textAlign:"right" }}>S/ {s.precio}</td>
+                  <td style={{ padding:"7px 10px", color:"var(--orange)", fontWeight:600, textAlign:"right" }}>{fmtSol(s.precio)}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         )}
         {resultados.length === 0 && cat && !loading && (
-          <p style={{ textAlign:"center", color:"var(--gray)", padding:"20px", fontSize:"12px" }}>
+          <p style={{ textAlign:"center", color:"var(--gray)", padding:"20px", fontSize: "17px" }}>
             Sin resultados — presiona Buscar
           </p>
         )}
@@ -181,11 +184,11 @@ export function OtrosProdModal({ onClose, onAgregar }) {
             background: selected?.id === p.id ? "var(--orange-dim)" : "transparent",
           }}>
             <div>
-              <div style={{ fontSize:"12px", color:"var(--color-text)" }}>{p.nombre}</div>
-              <div style={{ fontSize:"10px", color:"var(--gray)" }}>{p.categoria} · {p.subcategoria}</div>
+              <div style={{ fontSize: "17px", color:"var(--color-text)" }}>{p.nombre}</div>
+              <div style={{ fontSize: "15px", color:"var(--gray)" }}>{p.categoria} · {p.subcategoria}</div>
             </div>
-            <span style={{ color:"var(--orange)", fontWeight:600, fontFamily:"var(--font-mono)", fontSize:"13px" }}>
-              S/ {p.precio_venta}
+            <span style={{ color:"var(--orange)", fontWeight:600, fontFamily:"var(--font-mono)", fontSize: "18px" }}>
+              {fmtSol(p.precio_venta)}
             </span>
           </div>
         ))}
@@ -195,7 +198,10 @@ export function OtrosProdModal({ onClose, onAgregar }) {
 }
 
 // ── MultiPagoModal ────────────────────────────────────────────────────────────
-export function MultiPagoModal({ total, onClose, onConfirmar }) {
+// extra: px que se suman a todas las letras (Registro usa 5; Admin, 0)
+export function MultiPagoModal({ total, onClose, onConfirmar, inicial = [], extra = 0, sinDecimales = false }) {
+  // Registro muestra montos sin decimales (50 en vez de 50.00); Admin conserva 2 decimales
+  const fx = (n) => sinDecimales ? Number(n).toLocaleString("es-PE", { maximumFractionDigits: 2 }) : Number(n).toFixed(2);
   const METODOS = [
     { key: "EFECTIVO", label: "Efectivo", color: "var(--color-efectivo)" },
     { key: "TARJETA",  label: "Tarjeta",  color: "var(--color-tarjeta)" },
@@ -203,8 +209,10 @@ export function MultiPagoModal({ total, onClose, onConfirmar }) {
     { key: "PLIN",     label: "Plin",     color: "var(--color-plin)" },
   ];
 
-  const [checks, setChecks] = useState({ EFECTIVO: false, TARJETA: false, YAPE: false, PLIN: false });
-  const [montos, setMontos] = useState({ EFECTIVO: "", TARJETA: "", YAPE: "", PLIN: "" });
+  // Si ya hubo un reparto (se reabre para corregir), se precarga
+  const previo = Object.fromEntries(inicial.map((p) => [p.metodo, p.monto]));
+  const [checks, setChecks] = useState(() => ({ EFECTIVO: "EFECTIVO" in previo, TARJETA: "TARJETA" in previo, YAPE: "YAPE" in previo, PLIN: "PLIN" in previo }));
+  const [montos, setMontos] = useState(() => ({ EFECTIVO: previo.EFECTIVO ?? "", TARJETA: previo.TARJETA ?? "", YAPE: previo.YAPE ?? "", PLIN: previo.PLIN ?? "" }));
 
   const suma = METODOS.reduce((acc, m) => checks[m.key] ? acc + (parseFloat(montos[m.key]) || 0) : acc, 0);
   const diff = parseFloat((total - suma).toFixed(2));
@@ -235,9 +243,9 @@ export function MultiPagoModal({ total, onClose, onConfirmar }) {
       }
     >
       <div style={{ marginBottom:"16px", padding:"10px 14px", background:"var(--dark3)", borderRadius:"8px" }}>
-        <span style={{ fontSize:"12px", color:"var(--gray)" }}>Total del pedido: </span>
-        <span style={{ fontFamily:"var(--font-mono)", color:"var(--orange)", fontWeight:700, fontSize:"16px" }}>
-          S/ {total.toFixed(2)}
+        <span style={{ fontSize: (12 + extra) + "px", color:"var(--gray)" }}>Total del pedido: </span>
+        <span style={{ fontFamily:"var(--font-mono)", color:"var(--orange)", fontWeight:700, fontSize: (16 + extra) + "px" }}>
+          S/ {fx(total)}
         </span>
       </div>
 
@@ -246,26 +254,26 @@ export function MultiPagoModal({ total, onClose, onConfirmar }) {
           <div
             onClick={() => toggleCheck(m.key)}
             style={{
-              width:"20px", height:"20px", border:`1.5px solid ${checks[m.key] ? m.color : "var(--color-border)"}`,
+              width: (20 + extra) + "px", height: (20 + extra) + "px", border:`1.5px solid ${checks[m.key] ? m.color : "var(--color-border)"}`,
               borderRadius:"4px", display:"flex", alignItems:"center", justifyContent:"center",
               cursor:"pointer", background: checks[m.key] ? m.color : "transparent", flexShrink:0,
             }}
           >
-            {checks[m.key] && <span style={{ color:"#fff", fontSize:"12px", fontWeight:700 }}>✓</span>}
+            {checks[m.key] && <span style={{ color:"#fff", fontSize: (12 + extra) + "px", fontWeight:700 }}>✓</span>}
           </div>
-          <span style={{ width:"80px", fontSize:"13px", color: checks[m.key] ? m.color : "var(--color-text-muted)", fontWeight: checks[m.key] ? 600 : 400 }}>
+          <span style={{ width: (80 + extra * 6) + "px", fontSize: (13 + extra) + "px", color: checks[m.key] ? m.color : "var(--color-text-muted)", fontWeight: checks[m.key] ? 600 : 400 }}>
             {m.label}
           </span>
           <input
             type="number"
             min="0"
-            step="0.5"
-            placeholder="0.00"
+            step={sinDecimales ? "1" : "0.5"}
+            placeholder={sinDecimales ? "0" : "0.00"}
             value={montos[m.key]}
             disabled={!checks[m.key]}
             onChange={(e) => setMonto(m.key, e.target.value)}
             style={{
-              width:"100px", textAlign:"right",
+              width: (100 + extra * 6) + "px", textAlign:"right", fontSize: (13 + extra) + "px",
               fontFamily:"var(--font-mono)", color: checks[m.key] ? m.color : "var(--gray)",
               opacity: checks[m.key] ? 1 : 0.4,
             }}
@@ -277,22 +285,22 @@ export function MultiPagoModal({ total, onClose, onConfirmar }) {
         display:"flex", justifyContent:"space-between", marginTop:"8px",
         padding:"10px 14px", background:"var(--dark3)", borderRadius:"8px"
       }}>
-        <span style={{ fontSize:"12px", color:"var(--gray)" }}>Suma ingresada:</span>
+        <span style={{ fontSize: (12 + extra) + "px", color:"var(--gray)" }}>Suma ingresada:</span>
         <span style={{ fontFamily:"var(--font-mono)", fontWeight:600, color: valido ? "var(--green)" : "var(--color-text)" }}>
-          S/ {suma.toFixed(2)}
+          S/ {fx(suma)}
         </span>
       </div>
       <div style={{
         display:"flex", justifyContent:"space-between", marginTop:"4px",
         padding:"6px 14px"
       }}>
-        <span style={{ fontSize:"12px", color:"var(--gray)" }}>Diferencia:</span>
+        <span style={{ fontSize: (12 + extra) + "px", color:"var(--gray)" }}>Diferencia:</span>
         <span style={{ fontFamily:"var(--font-mono)", fontWeight:600, color: diff !== 0 ? "var(--red)" : "var(--green)" }}>
-          {diff > 0 ? `- S/ ${diff.toFixed(2)}` : diff < 0 ? `+ S/ ${Math.abs(diff).toFixed(2)}` : "✓ OK"}
+          {diff > 0 ? `- S/ ${fx(diff)}` : diff < 0 ? `+ S/ ${fx(Math.abs(diff))}` : "✓ OK"}
         </span>
       </div>
       {diff !== 0 && (
-        <p style={{ fontSize:"11px", color:"var(--red)", textAlign:"center", marginTop:"6px" }}>
+        <p style={{ fontSize: (11 + extra) + "px", color:"var(--red)", textAlign:"center", marginTop:"6px" }}>
           La suma debe coincidir exactamente con el total para confirmar
         </p>
       )}

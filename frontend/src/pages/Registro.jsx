@@ -9,13 +9,15 @@ import { OtrosSvcModal, OtrosProdModal, MultiPagoModal } from "../components/Mod
 
 const METODOS_PAGO = ["EFECTIVO", "YAPE", "PLIN", "TARJETA"];
 const fmt = (n) => "S/ " + Number(n || 0).toLocaleString("es-PE", { minimumFractionDigits: 2 });
+// Montos sin decimales (15 → "S/ 15"); solo muestra decimales si el precio realmente los tiene (12.5)
+const fmtSol = (n) => "S/ " + Number(n || 0).toLocaleString("es-PE", { maximumFractionDigits: 2 });
 
 /* ── Modal Cliente ─────────────────────────────────────────────────────────── */
 function ClienteModal({ onClose, onSelect }) {
   const [tab, setTab] = useState("Buscar");
   const [q, setQ] = useState("");
   const [resultados, setResultados] = useState([]);
-  const [form, setForm] = useState({ tipo_documento: "DNI", nro_documento: "", nombres: "", apellidos: "" });
+  const [form, setForm] = useState({ tipo_documento: "DNI", nro_documento: "", nombres: "", apellidos: "", nro_celular: "" });
   const [saving, setSaving] = useState(false);
   const toast = useToast();
   const { isOnline } = useOfflineSync();
@@ -31,8 +33,11 @@ function ClienteModal({ onClose, onSelect }) {
     }
   };
 
+  // Celular opcional; si se ingresa, debe tener 9 dígitos
+  const celularValido = form.nro_celular === "" || /^\d{9}$/.test(form.nro_celular);
+
   const crearCliente = async () => {
-    if (!form.nro_documento || !form.nombres) return;
+    if (!form.nro_documento || !form.nombres || !celularValido) return;
     if (!isOnline) { toast("Sin conexión — no se puede crear cliente ahora", "warning"); return; }
     setSaving(true);
     try {
@@ -55,24 +60,24 @@ function ClienteModal({ onClose, onSelect }) {
             <button className="btn-primary" onClick={buscar} disabled={!isOnline}>Buscar</button>
           </div>
           {!isOnline && (
-            <p style={{ color: "var(--orange)", fontSize: "11px", marginBottom: "8px" }}>
+            <p style={{ color: "var(--orange)", fontSize: "16px", marginBottom: "8px" }}>
               ⚡ Sin conexión — búsqueda no disponible
             </p>
           )}
           <div style={{ maxHeight: "240px", overflowY: "auto" }}>
             {resultados.map((c) => (
               <div key={c.id} onClick={() => { onSelect(c); onClose(); }}
-                style={{ display: "grid", gridTemplateColumns: "80px 110px 1fr", padding: "8px 10px",
-                  borderBottom: "0.5px solid var(--color-border)", cursor: "pointer", fontSize: "12px",
+                style={{ display: "grid", gridTemplateColumns: "100px 130px 1fr", padding: "10px 10px",
+                  borderBottom: "0.5px solid var(--color-border)", cursor: "pointer", fontSize: "17px",
                   color: "var(--color-text-dim)", gap: "8px" }}
                 onMouseOver={(e) => e.currentTarget.style.background = "var(--orange-dim)"}
                 onMouseOut={(e) => e.currentTarget.style.background = "transparent"}>
                 <span>{c.tipo_documento} {c.nro_documento}</span>
                 <span>{c.nombres}</span>
-                <span style={{ color: "var(--gray)" }}>{c.apellidos}</span>
+                <span style={{ color: "var(--gray)" }}>{c.apellidos}{c.nro_celular ? ` · 📱 ${c.nro_celular}` : ""}</span>
               </div>
             ))}
-            {resultados.length === 0 && q && <p style={{ color: "var(--gray)", textAlign: "center", padding: "16px", fontSize: "12px" }}>Sin resultados</p>}
+            {resultados.length === 0 && q && <p style={{ color: "var(--gray)", textAlign: "center", padding: "16px", fontSize: "17px" }}>Sin resultados</p>}
           </div>
         </>
       )}
@@ -89,9 +94,19 @@ function ClienteModal({ onClose, onSelect }) {
           </FormField>
           <FormField label="Nombres"><input value={form.nombres} onChange={(e) => setForm(f => ({ ...f, nombres: e.target.value }))} /></FormField>
           <FormField label="Apellidos"><input value={form.apellidos} onChange={(e) => setForm(f => ({ ...f, apellidos: e.target.value }))} /></FormField>
+          <FormField label="Nro. celular">
+            <input
+              type="tel" inputMode="numeric" maxLength={9} placeholder="9XXXXXXXX"
+              value={form.nro_celular}
+              onChange={(e) => setForm(f => ({ ...f, nro_celular: e.target.value.replace(/\D/g, "").slice(0, 9) }))}
+            />
+            {!celularValido && (
+              <span style={{ fontSize: "15px", color: "var(--red)" }}>El celular debe tener 9 dígitos</span>
+            )}
+          </FormField>
           <div className="modal-footer">
             <button className="btn-ghost" onClick={onClose}>Cancelar</button>
-            <button className="btn-primary" onClick={crearCliente} disabled={saving || !isOnline || !form.nro_documento || !form.nombres}>
+            <button className="btn-primary" onClick={crearCliente} disabled={saving || !isOnline || !form.nro_documento || !form.nombres || !celularValido}>
               {saving ? "Guardando…" : isOnline ? "Guardar cliente" : "Sin conexión"}
             </button>
           </div>
@@ -152,8 +167,8 @@ export default function Registro() {
     setItems((prev) => [...prev, {
       key: uuidv4(), tipo, item_id: item.id,
       nombre_item: item.nombre,
-      precio_cobrado: tipo === "S" ? item.precio : item.precio_venta,
-      precio_original: tipo === "S" ? item.precio : item.precio_venta,
+      precio_cobrado: Number(tipo === "S" ? item.precio : item.precio_venta) || 0,
+      precio_original: Number(tipo === "S" ? item.precio : item.precio_venta) || 0,
     }]);
   };
 
@@ -174,9 +189,11 @@ export default function Registro() {
   const total = items.reduce((acc, i) => acc + parseFloat(i.precio_cobrado || 0), 0);
 
   const tieneItems    = items.filter((i) => i.tipo !== "TIP").length > 0;
+  // Todos los servicios, productos y la propina (si se agregó) deben tener monto > 0
+  const montosValidos = items.every((i) => parseFloat(i.precio_cobrado) > 0);
   const tienePago     = metodo !== null;
   const tieneCliente  = cliente !== null;
-  const puedeRegistrar = tieneItems && tienePago && tieneCliente;
+  const puedeRegistrar = tieneItems && montosValidos && tienePago && tieneCliente;
 
   const limpiar = () => {
     setItems([]);
@@ -234,17 +251,40 @@ export default function Registro() {
     setSaving(false);
   };
 
+  const sumaMultiple = pagosMultiple.reduce((a, p) => a + p.monto, 0);
+  const multipleCuadra = Math.abs(sumaMultiple - total) < 0.005;
+
+  const elegirMultiple = () => {
+    if (total <= 0) { toast("Agrega servicios o productos antes de repartir el pago", "warning"); return; }
+    setShowMulti(true);
+  };
+
+  const confirmarMultiple = (pagos) => {
+    setPagosMultiple(pagos);
+    setMetodo("MULTIPLE");
+  };
+
   const handleRegistrar = () => {
-    if (metodo === "MULTIPLE") setShowMulti(true);
-    else registrar([{ metodo, monto: total }]);
+    if (!puedeRegistrar) return;
+    if (metodo === "MULTIPLE") {
+      // Si el total cambió después de repartir el pago, se vuelve a pedir el reparto
+      if (!multipleCuadra) {
+        toast("El total cambió — vuelve a repartir el pago múltiple", "warning");
+        setShowMulti(true);
+        return;
+      }
+      registrar(pagosMultiple);
+    } else {
+      registrar([{ metodo, monto: total }]);
+    }
   };
 
   const now = new Date();
 
   return (
-    <div style={{ minHeight: "100vh", background: "var(--dark)", display: "grid", gridTemplateColumns: "1fr 1.3fr" }}>
+    <div className="registro-layout">
       {/* Panel Izquierdo */}
-      <div style={{ padding: "18px", borderRight: "1px solid var(--dark3)", overflowY: "auto" }}>
+      <div className="registro-left">
         {countdown !== null && (
           <div className="inactivity-banner">
             ⏱ Sin actividad · El sistema cerrará la sesión en <strong>{countdown}</strong> s · Toca para continuar
@@ -252,35 +292,35 @@ export default function Registro() {
         )}
 
         {catalogoOffline && (
-          <div style={{ background: "#422006", border: "1px solid #92400e", borderRadius: "6px", padding: "8px 12px", marginBottom: "12px", fontSize: "11px", color: "#fde68a" }}>
+          <div style={{ background: "#422006", border: "1px solid #92400e", borderRadius: "6px", padding: "8px 12px", marginBottom: "12px", fontSize: "16px", color: "#fde68a" }}>
             📋 Catálogo en caché — se actualizará al recuperar conexión
           </div>
         )}
 
         <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "6px" }}>
           <div style={{ background: "var(--orange)", color: "#fff", borderRadius: "var(--radius-full)", padding: "4px 12px 4px 8px", display: "flex", alignItems: "center", gap: "6px" }}>
-            <div style={{ width: "24px", height: "24px", borderRadius: "50%", background: "rgba(255,255,255,.2)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "10px", fontWeight: 700 }}>
+            <div style={{ width: "30px", height: "30px", borderRadius: "50%", background: "rgba(255,255,255,.2)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "15px", fontWeight: 700 }}>
               {barberoActual?.nombre_corto?.[0]}
             </div>
-            <span style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "1px" }}>{barberoActual?.nombre_corto}</span>
+            <span style={{ fontSize: "16px", fontWeight: 700, letterSpacing: "1px" }}>{barberoActual?.nombre_corto}</span>
           </div>
         </div>
-        <div style={{ fontFamily: "var(--font-mono)", fontSize: "10px", color: "var(--gray)", marginBottom: "14px" }}>
+        <div style={{ fontFamily: "var(--font-mono)", fontSize: "15px", color: "var(--gray)", marginBottom: "14px" }}>
           {now.toLocaleDateString("es-PE")} · {now.toLocaleTimeString("es-PE")}
         </div>
 
         {/* Cliente */}
         <div style={{ marginBottom: "14px" }}>
-          <div style={{ fontSize: "9px", color: "var(--gray)", letterSpacing: "2px", textTransform: "uppercase", marginBottom: "5px" }}>Cliente</div>
+          <div style={{ fontSize: "14px", color: "var(--gray)", letterSpacing: "2px", textTransform: "uppercase", marginBottom: "5px" }}>Cliente</div>
           <div style={{ display: "flex", alignItems: "center", gap: "7px" }}>
-            <div style={{ width: "14px", height: "14px", border: "1.5px solid var(--orange)", borderRadius: "3px", background: cliente ? "var(--orange)" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-              {cliente && <span style={{ color: "#fff", fontSize: "9px" }}>✓</span>}
+            <div style={{ width: "22px", height: "22px", border: "2px solid var(--orange)", borderRadius: "4px", background: cliente ? "var(--orange)" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              {cliente && <span style={{ color: "#fff", fontSize: "14px" }}>✓</span>}
             </div>
-            <span style={{ fontSize: "11px", color: "var(--gray-light)" }}>
+            <span style={{ fontSize: "16px", color: "var(--gray-light)" }}>
               {cliente ? (cliente.es_generico ? "Cliente genérico" : `${cliente.nombres} ${cliente.apellidos}`.trim()) : "Sin cliente"}
             </span>
             <button onClick={() => setShowCliente(true)}
-              style={{ marginLeft: "auto", background: "var(--dark2)", border: "1px solid var(--dark3)", borderRadius: "5px", padding: "5px 9px", fontSize: "10px", color: "var(--gray)", cursor: "pointer" }}>
+              style={{ marginLeft: "auto", background: "var(--dark2)", border: "1px solid var(--dark3)", borderRadius: "5px", padding: "5px 9px", fontSize: "15px", color: "var(--gray)", cursor: "pointer" }}>
               🔍 Buscar
             </button>
           </div>
@@ -288,122 +328,132 @@ export default function Registro() {
 
         {/* Servicios favoritos */}
         <div style={{ marginBottom: "10px" }}>
-          <div style={{ fontSize: "9px", color: "var(--gray)", letterSpacing: "2px", textTransform: "uppercase", marginBottom: "6px" }}>Servicios (favoritos)</div>
+          <div style={{ fontSize: "14px", color: "var(--gray)", letterSpacing: "2px", textTransform: "uppercase", marginBottom: "6px" }}>Servicios (favoritos)</div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px", marginBottom: "6px" }}>
             {svcFav.map((s) => (
               <button key={s.id} onClick={() => agregarItem(s, "S")}
-                style={{ background: "var(--dark2)", border: "1px solid var(--dark3)", borderRadius: "7px", padding: "9px", cursor: "pointer", textAlign: "left", transition: "border-color .15s" }}
+                style={{ background: "var(--dark2)", border: "1px solid var(--dark3)", borderRadius: "7px", padding: "12px", cursor: "pointer", textAlign: "left", transition: "border-color .15s" }}
                 onMouseOver={(e) => e.currentTarget.style.borderColor = "var(--orange)"}
                 onMouseOut={(e) => e.currentTarget.style.borderColor = "var(--dark3)"}>
-                <div style={{ fontSize: "10px", color: "var(--white)", fontWeight: 500 }}>{s.nombre}</div>
-                <div style={{ fontSize: "12px", color: "var(--orange)", fontWeight: 600, marginTop: "2px" }}>S/ {s.precio}</div>
+                <div style={{ fontSize: "15px", color: "var(--white)", fontWeight: 500 }}>{s.nombre}</div>
+                <div style={{ fontSize: "17px", color: "var(--orange)", fontWeight: 600, marginTop: "2px" }}>{fmtSol(s.precio)}</div>
               </button>
             ))}
           </div>
-          <button onClick={() => setShowSvc(true)} style={{ width: "100%", background: "transparent", border: "1px dashed #444", borderRadius: "7px", padding: "7px", fontSize: "10px", color: "#555", cursor: "pointer" }}>
+          <button onClick={() => setShowSvc(true)} style={{ width: "100%", background: "transparent", border: "1px dashed #444", borderRadius: "7px", padding: "10px", fontSize: "15px", color: "#555", cursor: "pointer" }}>
             + Otros servicios →
           </button>
         </div>
 
         {/* Productos favoritos */}
         <div style={{ marginBottom: "10px" }}>
-          <div style={{ fontSize: "9px", color: "var(--gray)", letterSpacing: "2px", textTransform: "uppercase", marginBottom: "6px" }}>Productos (favoritos)</div>
+          <div style={{ fontSize: "14px", color: "var(--gray)", letterSpacing: "2px", textTransform: "uppercase", marginBottom: "6px" }}>Productos (favoritos)</div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px", marginBottom: "6px" }}>
             {prodFav.map((p) => (
               <button key={p.id} onClick={() => agregarItem(p, "P")}
-                style={{ background: "var(--dark2)", border: "1px solid var(--dark3)", borderRadius: "7px", padding: "7px", display: "flex", alignItems: "center", gap: "7px", cursor: "pointer", transition: "border-color .15s" }}
+                style={{ background: "var(--dark2)", border: "1px solid var(--dark3)", borderRadius: "7px", padding: "10px", display: "flex", alignItems: "center", gap: "7px", cursor: "pointer", transition: "border-color .15s" }}
                 onMouseOver={(e) => e.currentTarget.style.borderColor = "var(--orange)"}
                 onMouseOut={(e) => e.currentTarget.style.borderColor = "var(--dark3)"}>
-                <div style={{ width: "24px", height: "24px", background: "var(--dark3)", borderRadius: "5px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "12px", flexShrink: 0 }}>🧴</div>
+                <div style={{ width: "32px", height: "32px", background: "var(--dark3)", borderRadius: "5px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "17px", flexShrink: 0 }}>🧴</div>
                 <div>
-                  <div style={{ fontSize: "10px", color: "var(--white)" }}>{p.nombre}</div>
-                  <div style={{ fontSize: "11px", color: "var(--orange)" }}>S/ {p.precio_venta}</div>
+                  <div style={{ fontSize: "15px", color: "var(--white)" }}>{p.nombre}</div>
+                  <div style={{ fontSize: "16px", color: "var(--orange)" }}>{fmtSol(p.precio_venta)}</div>
                 </div>
               </button>
             ))}
           </div>
-          <button onClick={() => setShowProd(true)} style={{ width: "100%", background: "transparent", border: "1px dashed #444", borderRadius: "7px", padding: "7px", fontSize: "10px", color: "#555", cursor: "pointer" }}>
+          <button onClick={() => setShowProd(true)} style={{ width: "100%", background: "transparent", border: "1px dashed #444", borderRadius: "7px", padding: "10px", fontSize: "15px", color: "#555", cursor: "pointer" }}>
             + Otros productos →
           </button>
         </div>
 
         {/* Propina */}
         <div style={{ marginBottom: "12px" }}>
-          <div style={{ fontSize: "9px", color: "var(--gray)", letterSpacing: "2px", textTransform: "uppercase", marginBottom: "5px" }}>Propina</div>
+          <div style={{ fontSize: "14px", color: "var(--gray)", letterSpacing: "2px", textTransform: "uppercase", marginBottom: "5px" }}>Propina</div>
           <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer" }}>
-            <input type="checkbox" checked={propina} onChange={togglePropina} style={{ width: "auto", accentColor: "var(--orange)" }} />
-            <span style={{ fontSize: "12px", color: "var(--gray-light)" }}>💰 Agregar propina al cobro</span>
+            <input type="checkbox" checked={propina} onChange={togglePropina} style={{ width: "22px", height: "22px", accentColor: "var(--orange)", flexShrink: 0 }} />
+            <span style={{ fontSize: "17px", color: "var(--gray-light)" }}>💰 Agregar propina al cobro</span>
           </label>
         </div>
 
         {/* Forma de pago */}
         <div>
-          <div style={{ fontSize: "9px", color: "var(--gray)", letterSpacing: "2px", textTransform: "uppercase", marginBottom: "5px" }}>Forma de pago</div>
+          <div style={{ fontSize: "14px", color: "var(--gray)", letterSpacing: "2px", textTransform: "uppercase", marginBottom: "5px" }}>Forma de pago</div>
           <div style={{ display: "flex", gap: "5px", flexWrap: "wrap" }}>
             {METODOS_PAGO.map((m) => (
               <button key={m} onClick={() => setMetodo(m)}
-                style={{ flex: 1, minWidth: "60px", padding: "7px 4px", borderRadius: "5px", fontSize: "9px", fontWeight: 600, textAlign: "center", cursor: "pointer", border: "1.5px solid",
+                style={{ flex: 1, minWidth: "72px", padding: "11px 6px", borderRadius: "5px", fontSize: "14px", fontWeight: 600, textAlign: "center", cursor: "pointer", border: "1.5px solid",
                   background: metodo === m ? "var(--orange)" : "var(--dark2)",
                   color: metodo === m ? "#fff" : "var(--gray)",
                   borderColor: metodo === m ? "var(--orange)" : "var(--dark3)" }}>
                 {m}
               </button>
             ))}
-            <button onClick={() => setMetodo("MULTIPLE")}
-              style={{ flex: 1, minWidth: "60px", padding: "7px 4px", borderRadius: "5px", fontSize: "9px", fontWeight: 600, cursor: "pointer",
+            <button onClick={elegirMultiple}
+              style={{ flex: 1, minWidth: "72px", padding: "11px 6px", borderRadius: "5px", fontSize: "14px", fontWeight: 600, cursor: "pointer",
                 border: "1.5px dashed",
                 background: metodo === "MULTIPLE" ? "var(--orange-dim)" : "transparent",
                 color: "var(--orange)", borderColor: "var(--orange)" }}>
               Múltiple ⊕
             </button>
           </div>
+          {metodo === "MULTIPLE" && pagosMultiple.length > 0 && (
+            <div onClick={elegirMultiple}
+              style={{ marginTop: "6px", fontSize: "15px", cursor: "pointer", color: multipleCuadra ? "var(--gray-light)" : "#fca5a5" }}>
+              {pagosMultiple.map((p) => `${p.metodo} ${fmtSol(p.monto)}`).join(" · ")}
+              {multipleCuadra ? "  ✎" : "  — el total cambió, toca para corregir"}
+            </div>
+          )}
         </div>
       </div>
 
       {/* Panel Derecho */}
-      <div style={{ padding: "4px 18px 18px 18px", display: "flex", flexDirection: "column" }}>
-        <div style={{ marginBottom: "10px", fontSize: "11px", color: "var(--gray)" }}>
+      <div className="registro-right">
+        <div style={{ marginBottom: "10px", fontSize: "16px", color: "var(--gray)" }}>
           <div><span style={{ color: "var(--color-text-muted)" }}>CLIENTE</span> &nbsp; {cliente ? (cliente.es_generico ? "CLIENTE GENÉRICO" : `${cliente.nombres} ${cliente.apellidos}`.toUpperCase()) : "—"}</div>
           <div><span style={{ color: "var(--color-text-muted)" }}>BARBERO</span> &nbsp; {barberoActual?.nombre_corto}</div>
           {!isOnline && (
-            <div style={{ color: "#fca5a5", fontSize: "10px", marginTop: "4px" }}>
+            <div style={{ color: "#fca5a5", fontSize: "15px", marginTop: "4px" }}>
               ⚡ Modo sin conexión — se guardará localmente
             </div>
           )}
         </div>
 
-        <div style={{ flex: 1, overflowY: "auto" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 55px 50px 45px 24px", gap: "3px", fontSize: "9px", color: "var(--gray)", letterSpacing: "1px", textTransform: "uppercase", borderBottom: "1px solid var(--dark3)", paddingBottom: "6px", marginBottom: "6px" }}>
-            <span>Servicio/Producto</span><span>Precio</span><span>Pago</span><span>T</span><span></span>
+        <div className="registro-items">
+          <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) 80px 78px 46px 32px", gap: "3px", fontSize: "14px", color: "var(--gray)", letterSpacing: "0.5px", textTransform: "uppercase", alignItems: "end", borderBottom: "1px solid var(--dark3)", paddingBottom: "6px", marginBottom: "6px" }}>
+            <span style={{ minWidth: 0, overflowWrap: "anywhere" }}>Servicio / Producto</span><span>Precio</span><span>Pago</span><span>T</span><span></span>
           </div>
           {items.map((item) => (
-            <div key={item.key} style={{ display: "grid", gridTemplateColumns: "1fr 55px 50px 45px 24px", gap: "3px", padding: "6px 0", borderBottom: "0.5px solid var(--dark3)", alignItems: "center" }}>
-              <span style={{ fontSize: "11px", color: item.tipo === "TIP" ? "var(--orange)" : "var(--white)" }}>
+            <div key={item.key} style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) 80px 78px 46px 32px", gap: "3px", padding: "6px 0", borderBottom: "0.5px solid var(--dark3)", alignItems: "center" }}>
+              <span style={{ fontSize: "16px", color: item.tipo === "TIP" ? "var(--orange)" : "var(--white)" }}>
                 {item.tipo === "TIP" ? "💰" : ""} {item.nombre_item}
               </span>
               <input
-                type="number" value={item.precio_cobrado} min="0" step="0.5"
+                type="number" inputMode="decimal" value={item.precio_cobrado} min="0" step="1"
                 onChange={(e) => editarPrecio(item.key, e.target.value)}
                 onFocus={(e) => { if (parseFloat(e.target.value) === 0) editarPrecio(item.key, ""); }}
                 onBlur={(e) => { if (e.target.value === "") editarPrecio(item.key, 0); }}
-                style={{ padding: "3px 5px", fontSize: "11px", color: "var(--orange)", fontFamily: "var(--font-mono)", background: "var(--dark3)", border: "1px solid var(--orange)", borderRadius: "4px", width: "52px", textAlign: "right" }}
+                style={{ padding: "6px 6px", fontSize: "16px", color: "var(--orange)", fontFamily: "var(--font-mono)", background: "var(--dark3)", border: "1px solid var(--orange)", borderRadius: "4px", width: "76px", textAlign: "right",
+                  borderColor: parseFloat(item.precio_cobrado) > 0 ? "var(--orange)" : "var(--red)" }}
               />
-              <span style={{ fontSize: "9px", color: "var(--gray)" }}>{metodo === "MULTIPLE" ? "MULT." : (metodo || "—")}</span>
+              <span style={{ fontSize: "14px", color: "var(--gray)" }}>{metodo === "MULTIPLE" ? "MULT." : (metodo || "—")}</span>
               <span className={`tag-${item.tipo.toLowerCase()}`}>{item.tipo}</span>
-              <button onClick={() => eliminarItem(item.key)} style={{ background: "var(--dark3)", border: "none", borderRadius: "3px", color: "var(--gray)", fontSize: "10px", cursor: "pointer", width: "18px", height: "18px", display: "flex", alignItems: "center", justifyContent: "center" }}>×</button>
+              <button onClick={() => eliminarItem(item.key)} style={{ background: "var(--dark3)", border: "none", borderRadius: "3px", color: "var(--gray)", fontSize: "15px", cursor: "pointer", width: "28px", height: "28px", display: "flex", alignItems: "center", justifyContent: "center" }}>×</button>
             </div>
           ))}
           {items.length === 0 && (
-            <p style={{ color: "var(--gray)", textAlign: "center", padding: "30px", fontSize: "12px" }}>
+            <p style={{ color: "var(--gray)", textAlign: "center", padding: "30px", fontSize: "17px" }}>
               Selecciona servicios o productos para comenzar
             </p>
           )}
         </div>
 
+        {/* Barra de total y acciones: fija al fondo en celular */}
+        <div className="registro-actions">
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 0 8px", borderTop: "2px solid var(--orange)", marginTop: "6px" }}>
-          <span style={{ fontSize: "12px", fontWeight: 600, color: "var(--gray)", letterSpacing: "1px", textTransform: "uppercase" }}>TOTAL</span>
-          <span style={{ fontFamily: "var(--font-display)", fontSize: "30px", color: "var(--orange)", letterSpacing: "2px" }}>
-            S/ {total.toFixed(2)}
+          <span style={{ fontSize: "17px", fontWeight: 600, color: "var(--gray)", letterSpacing: "1px", textTransform: "uppercase" }}>TOTAL</span>
+          <span style={{ fontFamily: "var(--font-display)", fontSize: "35px", color: "var(--orange)", letterSpacing: "2px" }}>
+            {fmtSol(total)}
           </span>
         </div>
 
@@ -419,6 +469,7 @@ export default function Registro() {
           <button className="btn-secondary" onClick={limpiar}>Limpiar</button>
           <button className="btn-ghost" onClick={() => dispatch({ type: "GO", screen: "barberHome" })}>← Volver</button>
         </div>
+        </div>
       </div>
 
       {showCliente && <ClienteModal onClose={() => setShowCliente(false)} onSelect={setCliente} />}
@@ -428,7 +479,10 @@ export default function Registro() {
         <MultiPagoModal
           total={total}
           onClose={() => setShowMulti(false)}
-          onConfirmar={(pagos) => registrar(pagos)}
+          inicial={pagosMultiple}
+          extra={5}
+          sinDecimales
+          onConfirmar={confirmarMultiple}
         />
       )}
     </div>
